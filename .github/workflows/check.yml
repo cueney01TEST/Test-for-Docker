@@ -1,0 +1,24 @@
+name: Check Dockerfile
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check if Dockerfile exists
+        run: |
+          if [ ! -f Dockerfile ]; then
+            echo "Keine Dockerfile gefunden!"
+            exit 1
+          fi
+
+      - name: Try building the Dockerfile
+        run: |
+          docker build -t student-image .
