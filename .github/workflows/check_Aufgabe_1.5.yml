@@ -1,0 +1,60 @@
+name: Aufgabe 1.5 prüfen
+
+on:
+  push:
+    paths:
+      - 'abgaben/aufgabe1_5/**'
+  pull_request:
+    paths:
+      - 'abgaben/aufgabe1_5/**'
+
+jobs:
+  check-aufgabe1-5:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v3
+
+      - name: Dockerfile finden
+        run: |
+          FILE=$(find abgaben/aufgabe1_5 -name Dockerfile | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ Keine Dockerfile gefunden!"
+            exit 1
+          fi
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Dockerfile prüfen (Aufgabe 1.5)
+        run: |
+          echo "Prüfe Aufgabe 1.5..."
+          cat $FILE
+
+          PUNKTE=0
+
+          # Muss apt-get update + install + cleanup enthalten
+          if grep -q "apt-get update" $FILE && \
+             grep -q "apt-get install" $FILE && \
+             grep -q "rm -rf /var/lib/apt/lists" $FILE; then
+            echo "✔ apt-get Best Practices erfüllt (+4)"
+            PUNKTE=$((PUNKTE+4))
+          else
+            echo "✘ apt-get Best Practices fehlen"
+          fi
+
+          grep -q "^WORKDIR" $FILE && echo "✔ WORKDIR vorhanden (+2)" && PUNKTE=$((PUNKTE+2))
+          grep -q "^COPY"    $FILE && echo "✔ COPY vorhanden (+2)"    && PUNKTE=$((PUNKTE+2))
+          grep -q "^ENV"     $FILE && echo "✔ ENV vorhanden (+2)"     && PUNKTE=$((PUNKTE+2))
+          grep -q "^CMD"     $FILE && echo "✔ CMD vorhanden (+2)"     && PUNKTE=$((PUNKTE+2))
+
+          echo "Baue Image..."
+          docker build -t aufgabe1-5-test -f $FILE . && PUNKTE=$((PUNKTE+4))
+
+          echo "GESAMTPUNKTE: $PUNKTE"
+
+          if [ $PUNKTE -lt 8 ]; then
+            echo "❌ Aufgabe 1.5 nicht bestanden"
+            exit 1
+          fi
+
+          echo "✔ Aufgabe 1.5 bestanden"

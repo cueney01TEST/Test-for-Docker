@@ -1,0 +1,50 @@
+name: Aufgabe 1 prüfen
+
+on:
+  push:
+    paths:
+      - 'abgaben/aufgabe1/**'
+  pull_request:
+    paths:
+      - 'abgaben/aufgabe1/**'
+
+jobs:
+  check-aufgabe1:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v3
+
+      - name: Dockerfile finden
+        run: |
+          FILE=$(find abgaben/aufgabe1 -name Dockerfile | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ Keine Dockerfile gefunden!"
+            exit 1
+          fi
+          echo "Gefundene Dockerfile: $FILE"
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Dockerfile prüfen (Aufgabe 1)
+        run: |
+          echo "Prüfe Aufgabe 1..."
+          cat $FILE
+
+          PUNKTE=0
+
+          grep -q "^FROM" $FILE && echo "✔ FROM gefunden (+2)" && PUNKTE=$((PUNKTE+2))
+          grep -q "^RUN"  $FILE && echo "✔ RUN gefunden (+2)"  && PUNKTE=$((PUNKTE+2))
+          grep -q "^CMD"  $FILE && echo "✔ CMD gefunden (+2)"  && PUNKTE=$((PUNKTE+2))
+
+          echo "Baue Image..."
+          docker build -t aufgabe1-test -f $FILE . && PUNKTE=$((PUNKTE+4))
+
+          echo "GESAMTPUNKTE: $PUNKTE"
+
+          if [ $PUNKTE -lt 6 ]; then
+            echo "❌ Aufgabe 1 nicht bestanden"
+            exit 1
+          fi
+
+          echo "✔ Aufgabe 1 bestanden"
