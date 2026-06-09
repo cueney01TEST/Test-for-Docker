@@ -1,0 +1,71 @@
+name: Aufgabe 2 prüfen
+
+on:
+  push:
+    paths:
+      - 'abgaben/aufgabe2/**'
+  pull_request:
+    paths:
+      - 'abgaben/aufgabe2/**'
+
+jobs:
+  check-aufgabe2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v3
+
+      - name: Dockerfile finden
+        run: |
+          FILE=$(find abgaben/aufgabe2 -name Dockerfile | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ Keine Dockerfile gefunden!"
+            exit 1
+          fi
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Dockerfile prüfen (Aufgabe 2)
+        run: |
+          echo "Prüfe Aufgabe 2..."
+          cat $FILE
+
+          PUNKTE=0
+
+          # Multi-Stage
+          if grep -q "FROM .* AS" $FILE; then
+            echo "✔ Multi-Stage erkannt (+4)"
+            PUNKTE=$((PUNKTE+4))
+          else
+            echo "✘ Keine Multi-Stage Struktur"
+          fi
+
+          # Script vorhanden?
+          if grep -q "linux_arm_toolchain.sh" $FILE; then
+            echo "✔ Script wird kopiert/verwendet (+4)"
+            PUNKTE=$((PUNKTE+4))
+          fi
+
+          # Benutzer
+          if grep -q "useradd" $FILE; then
+            echo "✔ Benutzer wird angelegt (+2)"
+            PUNKTE=$((PUNKTE+2))
+          fi
+
+          # ENV PATH
+          if grep -q "ENV PATH" $FILE; then
+            echo "✔ PATH gesetzt (+2)"
+            PUNKTE=$((PUNKTE+2))
+          fi
+
+          echo "Baue Image..."
+          docker build -t aufgabe2-test -f $FILE . && PUNKTE=$((PUNKTE+4))
+
+          echo "GESAMTPUNKTE: $PUNKTE"
+
+          if [ $PUNKTE -lt 10 ]; then
+            echo "❌ Aufgabe 2 nicht bestanden"
+            exit 1
+          fi
+
+          echo "✔ Aufgabe 2 bestanden"
