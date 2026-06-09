@@ -1,18 +1,20 @@
-name: Check Dockerfiles
+name: Check all student Dockerfiles
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Find all student Dockerfiles
+      - name: Find all Dockerfiles
         run: |
           echo "Gefundene Dockerfiles:"
           find abgaben -name Dockerfile
@@ -20,7 +22,9 @@ jobs:
       - name: Build each Dockerfile
         run: |
           for file in $(find abgaben -name Dockerfile); do
-            echo "Baue: $file"
+            echo "----------------------------------------"
+            echo "Baue Dockerfile: $file"
+            echo "----------------------------------------"
             dir=$(dirname $file)
             docker build -t testimage-$dir $dir || exit 1
           done
