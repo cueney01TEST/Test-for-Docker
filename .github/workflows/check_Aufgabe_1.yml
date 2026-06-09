@@ -1,80 +1,50 @@
-name: Dockerfile Bewertung
+name: Aufgabe 1 prüfen
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
+    paths:
+      - 'abgaben/aufgabe1/**'
+  pull_request:
+    paths:
+      - 'abgaben/aufgabe1/**'
 
 jobs:
-  bewertung:
+  check-aufgabe1:
     runs-on: ubuntu-latest
 
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v3
 
-      - name: Dockerfiles bewerten
+      - name: Dockerfile finden
         run: |
-          echo "Starte Bewertung..."
-          echo ""
-
-          GESAMTPUNKTE=0
-
-          for file in $(find abgaben -name Dockerfile); do
-            echo "----------------------------------------"
-            echo "Bewerte: $file"
-            echo "----------------------------------------"
-
-            PUNKTE=0
-            DIR=$(dirname $file)
-
-            # 1) Check: FROM vorhanden (2 Punkte)
-            if grep -q "^FROM" "$file"; then
-              echo "✔ FROM gefunden (+2)"
-              PUNKTE=$((PUNKTE+2))
-            else
-              echo "✘ Kein FROM gefunden (0)"
-            fi
-
-            # 2) Check: RUN vorhanden (2 Punkte)
-            if grep -q "^RUN" "$file"; then
-              echo "✔ RUN gefunden (+2)"
-              PUNKTE=$((PUNKTE+2))
-            else
-              echo "✘ Kein RUN gefunden (0)"
-            fi
-
-            # 3) Check: CMD vorhanden (2 Punkte)
-            if grep -q "^CMD" "$file"; then
-              echo "✔ CMD gefunden (+2)"
-              PUNKTE=$((PUNKTE+2))
-            else
-              echo "✘ Kein CMD gefunden (0)"
-            fi
-
-            # 4) Check: Dockerfile baut (4 Punkte)
-            if docker build -t testimage-$DIR $DIR > /dev/null 2>&1; then
-              echo "✔ Build erfolgreich (+4)"
-              PUNKTE=$((PUNKTE+4))
-            else
-              echo "✘ Build fehlgeschlagen (0)"
-            fi
-
-            echo "Punkte für $file: $PUNKTE"
-            echo ""
-
-            GESAMTPUNKTE=$((GESAMTPUNKTE+PUNKTE))
-          done
-
-          echo "========================================"
-          echo "GESAMTPUNKTE: $GESAMTPUNKTE"
-          echo "========================================"
-
-          # Mindestpunktzahl für Bestehen
-          if [ "$GESAMTPUNKTE" -lt 6 ]; then
-            echo "❌ Bewertung nicht bestanden"
+          FILE=$(find abgaben/aufgabe1 -name Dockerfile | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ Keine Dockerfile gefunden!"
             exit 1
-          else
-            echo "✔ Bewertung bestanden"
           fi
+          echo "Gefundene Dockerfile: $FILE"
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Dockerfile prüfen (Aufgabe 1)
+        run: |
+          echo "Prüfe Aufgabe 1..."
+          cat $FILE
+
+          PUNKTE=0
+
+          grep -q "^FROM" $FILE && echo "✔ FROM gefunden (+2)" && PUNKTE=$((PUNKTE+2))
+          grep -q "^RUN"  $FILE && echo "✔ RUN gefunden (+2)"  && PUNKTE=$((PUNKTE+2))
+          grep -q "^CMD"  $FILE && echo "✔ CMD gefunden (+2)"  && PUNKTE=$((PUNKTE+2))
+
+          echo "Baue Image..."
+          docker build -t aufgabe1-test -f $FILE . && PUNKTE=$((PUNKTE+4))
+
+          echo "GESAMTPUNKTE: $PUNKTE"
+
+          if [ $PUNKTE -lt 6 ]; then
+            echo "❌ Aufgabe 1 nicht bestanden"
+            exit 1
+          fi
+
+          echo "✔ Aufgabe 1 bestanden"
