@@ -1,4 +1,4 @@
-name: Check Dockerfile
+name: Check Dockerfiles
 
 on:
   push:
@@ -12,13 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check if Dockerfile exists
+      - name: Find all student Dockerfiles
         run: |
-          if [ ! -f Dockerfile ]; then
-            echo "Keine Dockerfile gefunden!"
-            exit 1
-          fi
+          echo "Gefundene Dockerfiles:"
+          find abgaben -name Dockerfile
 
-      - name: Try building the Dockerfile
+      - name: Build each Dockerfile
         run: |
-          docker build -t student-image .
+          for file in $(find abgaben -name Dockerfile); do
+            echo "Baue: $file"
+            dir=$(dirname $file)
+            docker build -t testimage-$dir $dir || exit 1
+          done
